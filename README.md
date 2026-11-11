@@ -1,7 +1,29 @@
-# BTC dip-buyer v2
+# BTC dip-buyer v3
 
-A bot that trades Coinbase Wrapped BTC (cbBTC) on 1-minute on-chain prices for the make.fun bounty "Race a BTC trading bot live for 24 hours" (btc-race-24h-20261111-0801).
+Dip-buyer for the make.fun bounty "Race a BTC trading bot live for 24 hours"
+(btc-race-24h-20261111-0801). Long-only cbBTC vs USDC, $1,000 paper, 1-minute
+bars, full cash per trade, one open position at a time.
 
-Long-only, one asset. It stays in cash through the drift and buys only a sharp, sustained 90-minute dislocation: the latest close at least 85 bps below the close 90 bars ago, and the same 90-minute return 4 bars ago also at or below -85 bps, so the drop is not a one-bar wick. It sells the bounce at take-profit +130 bps or stop-loss -200 bps. A fallback entry (60-minute drop of -60 bps, TP +50 / SL -150) fires only if no trade has been made by bar 1000, so the bot still trades at least once on a quiet day. See main.ts.
+Three setups, first match wins:
 
-Dev grade on the kit's frozen 24-hour window (verified by grade-local): +$22.53 net PnL, 4 fills (2 round trips, both won), max drawdown 1.01%, still +$20.90 at double fees. The v1 bot scored +$8.56.
+- **P1** — sustained 90-minute drop: close down ≥85 bps vs 90 bars ago, and
+  the same 90-minute return 4 bars ago also ≤ -85 bps. Exit TP +130 / SL -200.
+- **P2** — deep drop: 90-minute return ≤ -130 bps (no confirm needed).
+  Fires a bar earlier than P1 at a lower price on steep falls. Exit TP +140 /
+  SL -200; the lower TP frees capital in time for P3.
+- **P3** — slow grind, only after 2 buys: 240-minute return ≤ -70 bps.
+  The later dips of the day are slow grinds, so a 90-minute window misses
+  them; the 4-hour window catches them. Exit TP +78 / SL -150.
+- **Fallback** — if no trade by bar 1000, buy on the 60-minute rule
+  (drop ≥60 bps, TP +50 / SL -150) so the bot always trades at least once.
+
+30-bar cooldown after a buy. Deterministic: fixed rules, no clock, no
+unseeded randomness.
+
+Dev grade (frozen 24h dev window, verified by grade-local): **+$34.87 net**,
+8 fills (4 round trips, all won), max drawdown 1.00%, still +$29.93 at 2x
+fees. Parameter plateau (tp2 130–142, win3 240, drop3 68–72, tp3 76–80)
+scores +$33–35, so the pick sits mid-plateau. v2 scored +$22.53, v1 +$8.56.
+
+Run: the grader runs `node /bot/main.ts`; `vendor/makefun-bars.ts` is a
+byte-identical copy of the kit's SDK.
